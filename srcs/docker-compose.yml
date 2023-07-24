@@ -1,0 +1,77 @@
+version: '3'
+
+services:
+  mariadb:
+    container_name: mariadb
+    image: mariadb
+    build:
+      context: requirements/mariadb/
+      args:
+        - MYSQL_DATABASE
+        - MYSQL_USER
+        - MYSQL_PASSWORD
+    networks:
+      - inception
+    volumes:
+      - mariadb_volume:/var/lib/mysql/
+    restart: on-failure
+
+  wordpress:
+    container_name: wordpress
+    image: wordpress
+    build:
+      context: requirements/wordpress/
+      args:
+        - MYSQL_DATABASE
+        - MYSQL_USER
+        - MYSQL_PASSWORD
+        - MYSQL_HOST
+    restart: on-failure
+    networks:
+      - inception
+    environment:
+      - WORDPRESS_URL
+      - WORDPRESS_ADMIN_USER
+      - WORDPRESS_ADMIN_PASSWORD
+      - WORDPRESS_ADMIN_EMAIL
+      - WORDPRESS_GUEST_USER
+      - WORDPRESS_GUEST_PASSWORD
+      - WORDPRESS_GUEST_EMAIL
+    volumes:
+      - wordpress_volume:/var/www/html/
+    depends_on:
+      - mariadb
+
+  nginx:
+    container_name: nginx
+    image: nginx
+    restart: on-failure
+    build:
+      context: requirements/nginx/
+    networks:
+      - inception
+    ports:
+      - 443:443
+    volumes:
+      - wordpress_volume:/var/www/html
+    depends_on:
+      - wordpress
+
+networks:
+  inception:
+    name: inception
+    driver: bridge
+
+volumes:
+  mariadb_volume:
+    name: mariadb_volume
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/mtomomit/data/mariadb
+  wordpress_volume:
+    name: wordpress_volume
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/mtomomit/data/wordpress
